@@ -53,37 +53,22 @@ void Bot::onMessageCreate(const dpp::message_create_t& event) {
 	if (event.msg.author.is_bot()) return;
 	std::string query = "SELECT * FROM User WHERE idUser = " + std::to_string(event.msg.author.id);
 	try {
-		MYSQL* conn = SQL_conn.getConnection();
-		MYSQL_RES* res;
+		MYSQL_RES* res = SQL_conn.ExecuteReturnQuery(query.c_str());
 		MYSQL_ROW row;
 
-		try {
-		if (mysql_query(conn, query.c_str())) {
-			spdlog::debug("Error: {}", mysql_error(conn));
+		row = mysql_fetch_row(res);
+		if (row) {
+			int xp = Util::calculateXPFromMessage(event.msg);
+			if (xp == 0) return;
+			std::string updateQuery = "UPDATE User SET UserXP = UserXP + " + std::to_string(xp) + " WHERE idUser = " + std::to_string(event.msg.author.id);
+			SQL_conn.ExecuteNoReturnQuery(updateQuery.c_str(), false);
 			return;
 		}
-		}
-		catch (std::exception& e) {
-			spdlog::critical("Error: {}", e.what());
-			//EXIT PANIC OH GOD FUCK FUCK FUCK WHAT DO I DO???
-			exit(1);
-		}
-		res = mysql_store_result(conn);
-		if (res) {
-			row = mysql_fetch_row(res);
-			if (row) {
-				int xp = Util::calculateXPFromMessage(event.msg);
-				if (xp == 0) return;
-				std::string updateQuery = "UPDATE User SET UserXP = UserXP + " + std::to_string(xp) + " WHERE idUser = " + std::to_string(event.msg.author.id);
-				SQL_conn.ExecuteNoReturnQuery(updateQuery.c_str(), false);
-				return;
-			}
-			else {
-				spdlog::debug("User not found in database");
-				mysql_free_result(res);
-				createNewUser(event.msg.author.id, event.msg.author.username);
-				return;
-			}
+		else {
+			spdlog::debug("User not found in database");
+			mysql_free_result(res);
+			createNewUser(event.msg.author.id, event.msg.author.username);
+			return;
 		}
 		mysql_free_result(res);
 
