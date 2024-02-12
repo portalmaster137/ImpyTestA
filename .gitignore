@@ -363,7 +363,8 @@ MigrationBackup/
 FodyWeavers.xsd
 
 
-
+build/
+.vscode/
 ImpyTestA/x64
 .env
 vcpkg_installed/
